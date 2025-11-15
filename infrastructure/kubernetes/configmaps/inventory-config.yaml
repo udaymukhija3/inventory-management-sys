@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inventory-config
+  namespace: inventory-management
+data:
+  postgres_host: "postgres-service"
+  redis_host: "redis-service"
+  kafka_brokers: "kafka-service:9092"
+

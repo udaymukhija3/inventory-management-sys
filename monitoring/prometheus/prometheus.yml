@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'inventory-service'
+    static_configs:
+      - targets: ['inventory-service:8080']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['analytics-service:8000']
+
+  - job_name: 'reorder-service'
+    static_configs:
+      - targets: ['reorder-service:8081']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:9000']
+    metrics_path: '/actuator/prometheus'
+

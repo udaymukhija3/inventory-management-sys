@@ -1,0 +1,28 @@
+{
+  "dashboard": {
+    "title": "Inventory Management Dashboard",
+    "panels": [
+      {
+        "title": "Inventory Levels",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "inventory_quantity_total",
+            "legendFormat": "{{sku}}"
+          }
+        ]
+      },
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{service}}"
+          }
+        ]
+      }
+    ]
+  }
+}
+

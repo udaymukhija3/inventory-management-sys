@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: reorder-service
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/inventory
+    username: inventory_user
+    password: inventory_pass
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.reorder: DEBUG
+

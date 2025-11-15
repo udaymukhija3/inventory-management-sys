@@ -1,0 +1,27 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: inventory-service
+          uri: http://inventory-service:8080
+          predicates:
+            - Path=/api/v1/inventory/**
+        
+        - id: analytics-service
+          uri: http://analytics-service:8000
+          predicates:
+            - Path=/api/v1/analytics/**
+        
+        - id: reorder-service
+          uri: http://reorder-service:8081
+          predicates:
+            - Path=/api/v1/reorder/**
+
+server:
+  port: 9000
+
+logging:
+  level:
+    root: INFO
+    com.gateway: INFO
+
