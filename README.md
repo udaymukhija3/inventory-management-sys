@@ -144,11 +144,14 @@ This system showcases:
 
 ## Quick Start
 
+> **🚀 New to this project?** 
+> - **Step-by-step guide**: [RUN_STEPS.md](./RUN_STEPS.md) - Detailed instructions to run the project
+> - **M1 Mac setup**: [QUICKSTART.md](./QUICKSTART.md) - M1 Mac optimized setup guide
+> - **No code changes needed**: [NO_CHANGES_NEEDED.md](./NO_CHANGES_NEEDED.md) - Verification that existing code works
+
 ### Prerequisites
 - Docker and Docker Compose
-- Java 17+ (for local development)
-- Python 3.11+ (for local development)
-- Maven (for Java services)
+- M1 MacBook Pro recommended (ARM64 architecture)
 
 ### Installation
 
@@ -158,27 +161,62 @@ This system showcases:
    cd inventory_management_sys
    ```
 
-2. **Start all services**
+2. **Start minimal services (Recommended for M1 Mac)**
    ```bash
-   docker-compose up -d
+   # Minimal setup with essential services only
+   docker-compose -f docker-compose.dev.yml up -d
+   ```
+   
+   This starts:
+   - PostgreSQL (database)
+   - Redis (caching)
+   - MongoDB (analytics)
+   - Kafka + Zookeeper (event streaming)
+   - API Gateway
+   - Inventory Service
+   - Analytics Service
+   - Reorder Service
+
+3. **Wait for services to be healthy (1-2 minutes)**
+   ```bash
+   # Check service status
+   docker-compose -f docker-compose.dev.yml ps
+   
+   # Check logs
+   docker-compose -f docker-compose.dev.yml logs -f
    ```
 
-3. **Seed sample data**
+4. **Seed sample data**
    ```bash
    ./scripts/seed-data.sh
    ```
 
-4. **Verify services are running**
+5. **Verify services are running**
    ```bash
+   # Health check endpoints
+   curl http://localhost:9000/actuator/health  # API Gateway
+   curl http://localhost:8080/actuator/health  # Inventory Service
+   curl http://localhost:8000/health           # Analytics Service
+   
+   # Or use the health check script
    ./scripts/health-check.sh
    ```
 
-5. **Access services**
+### Full Setup (Optional - for demonstration only)
+
+If you need all services including monitoring and ETL:
+```bash
+docker-compose up -d
+```
+
+**Note**: The full setup includes Elasticsearch, Flink, Airflow, Prometheus, and Grafana which require significant resources and may not run smoothly on M1 Mac.
+
+6. **Access services**
    - API Gateway: http://localhost:9000
    - Inventory Service: http://localhost:8080
-   - Analytics Service: http://localhost:8000
    - Swagger UI: http://localhost:8080/swagger-ui.html
-   - Airflow UI: http://localhost:8084 (admin/admin)
+   - Analytics Service: http://localhost:8000
+   - API Docs: http://localhost:8000/api/docs
 
 ## API Examples
 

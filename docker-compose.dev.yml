@@ -1,0 +1,208 @@
+# Minimal Docker Compose for M1 Mac - Essential Services Only
+# This configuration is optimized for local development and demonstration
+# on M1 MacBook Pro with minimal resource usage
+
+services:
+  # PostgreSQL - Primary database
+  postgres:
+    platform: linux/arm64
+    image: postgres:14-alpine
+    container_name: inventory-postgres
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # Redis - Caching layer
+  redis:
+    platform: linux/arm64
+    image: redis:7-alpine
+    container_name: inventory-redis
+    command: redis-server --requirepass redis_pass --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping", "-a", "redis_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # MongoDB - Analytics database
+  mongodb:
+    platform: linux/arm64
+    image: mongo:6.0
+    container_name: inventory-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin_pass
+      MONGO_INITDB_DATABASE: inventory_catalog
+    volumes:
+      - mongo_data:/data/db
+      - ./infrastructure/docker/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+    ports:
+      - "27017:27017"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # Zookeeper - Required for Kafka
+  zookeeper:
+    platform: linux/arm64
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: inventory-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # Kafka - Event streaming
+  kafka:
+    platform: linux/arm64
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: inventory-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # Inventory Service - Core Java/Spring Boot service
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory
+      SPRING_DATASOURCE_USERNAME: inventory_user
+      SPRING_DATASOURCE_PASSWORD: inventory_pass
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PASSWORD: redis_pass
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    ports:
+      - "8080:8080"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # Analytics Service - Python/FastAPI service
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics-service
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+    environment:
+      # Pydantic BaseSettings automatically maps MONGODB_URL to mongodb_url
+      MONGODB_URL: mongodb://admin:admin_pass@mongodb:27017/inventory_catalog?authSource=admin
+      REDIS_URL: redis://:redis_pass@redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MODEL_PATH: /app/models
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./analytics-service/models:/app/models
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # Reorder Service - Java/Spring Boot service
+  reorder-service:
+    build:
+      context: ./reorder-service
+      dockerfile: Dockerfile
+    container_name: reorder-service
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory
+      SPRING_DATASOURCE_USERNAME: inventory_user
+      SPRING_DATASOURCE_PASSWORD: inventory_pass
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    ports:
+      - "8081:8081"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  # API Gateway - Spring Cloud Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    depends_on:
+      - inventory-service
+      - analytics-service
+      - reorder-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "9000:9000"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongo_data:
+
+networks:
+  inventory-network:
+    driver: bridge
+
