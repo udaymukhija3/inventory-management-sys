@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management System - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory<span class="brand-accent">Pro</span></span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="products.html"><i class="fas fa-box"></i> Products</a></li>
+                <li><a href="inventory.html"><i class="fas fa-warehouse"></i> Inventory</a></li>
+                <li><a href="analytics.html"><i class="fas fa-chart-line"></i> Analytics</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <header class="page-header">
+                <div>
+                    <h1>Dashboard</h1>
+                    <p class="subtitle">Welcome back! Here's what's happening with your inventory today.</p>
+                </div>
+                <button class="btn btn-primary" onclick="window.location.href='products.html'">
+                    <i class="fas fa-plus"></i> Add Product
+                </button>
+            </header>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalProducts">Loading...</h3>
+                        <p>Total Products</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalValue">Loading...</h3>
+                        <p>Total Inventory Value</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="lowStockItems">Loading...</h3>
+                        <p>Low Stock Alerts</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-warehouse"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalWarehouses">Loading...</h3>
+                        <p>Active Warehouses</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Recent Products -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-box"></i> Recent Products</h2>
+                        <a href="products.html" class="link">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentProducts" class="table-container">
+                            <div class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading products...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Low Stock Alerts -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-exclamation-circle"></i> Low Stock Alerts</h2>
+                        <a href="inventory.html" class="link">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="card-body">
+                        <div id="lowStockList" class="alert-list">
+                            <div class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading alerts...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                <div class="action-grid">
+                    <button class="action-btn" onclick="window.location.href='products.html'">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Add New Product</span>
+                    </button>
+                    <button class="action-btn" onclick="window.location.href='inventory.html'">
+                        <i class="fas fa-edit"></i>
+                        <span>Adjust Inventory</span>
+                    </button>
+                    <button class="action-btn" onclick="window.location.href='analytics.html'">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>View Analytics</span>
+                    </button>
+                    <button class="action-btn" onclick="refreshDashboard()">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh Data</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/app.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
