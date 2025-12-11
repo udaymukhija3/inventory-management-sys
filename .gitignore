@@ -74,3 +74,4 @@ Thumbs.db
 *.model
 /models/
 
+.archive/
