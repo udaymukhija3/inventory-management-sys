@@ -1,5 +1,5 @@
 # Multi-stage build for optimization
-FROM maven:3.9-eclipse-temurin-17-alpine AS build
+FROM --platform=linux/arm64 maven:3.9-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
@@ -12,19 +12,16 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+FROM --platform=linux/arm64 eclipse-temurin:17-jre
 
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy JAR from build stage
 COPY --from=build /app/target/inventory-service-1.0.0.jar app.jar
 
-# Create non-root user
-RUN addgroup -g 1000 spring && \
-    adduser -u 1000 -G spring -s /bin/sh -D spring
-USER spring:spring
+
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \

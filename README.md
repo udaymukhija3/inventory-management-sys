@@ -1,15 +1,30 @@
 # Inventory Management System
 
-A **microservices-based inventory management system** demonstrating **backend architecture** (70%) and **basic data engineering** (30%) skills. Built with Spring Boot, FastAPI, and modern data processing tools.
+A production-ready microservices-based inventory management system built with modern backend technologies and data engineering practices. This project demonstrates enterprise-level architecture, RESTful API design, event-driven patterns, and real-time analytics.
 
-## Overview
+## 🚀 Features
 
-This system showcases:
-- **Backend Skills**: RESTful APIs, microservices architecture, API Gateway, caching, database design
-- **Data Engineering**: ETL pipelines, event streaming, data quality checks, batch processing
-- **Production-Ready Features**: Error handling, logging, monitoring, health checks, documentation
+### Backend Architecture
+- **Microservices Design**: Independent, scalable services with clear separation of concerns
+- **RESTful APIs**: 45+ well-documented endpoints with Swagger/OpenAPI support
+- **API Gateway**: Centralized routing, rate limiting, and circuit breakers using Spring Cloud Gateway
+- **Caching Strategy**: Redis-based caching achieving 85-95% cache hit rate
+- **Event-Driven Architecture**: Kafka-based event streaming for real-time data processing
 
-## Architecture
+### Data Engineering
+- **ETL Pipelines**: Apache Airflow for scheduled data processing and transformations
+- **Real-Time Analytics**: FastAPI-based analytics service with MongoDB
+- **Data Quality**: Automated validation, anomaly detection, and quality monitoring
+- **Event Streaming**: Kafka consumers for real-time inventory updates
+
+### Core Functionality
+- **Product Management**: Complete CRUD operations with category organization
+- **Inventory Tracking**: Multi-warehouse inventory with real-time stock levels
+- **Automated Reordering**: Smart reorder point calculations and supplier management
+- **Analytics Dashboard**: Inventory velocity, trends, and turnover metrics
+- **Low Stock Alerts**: Automated notifications for items below threshold
+
+## 🏗️ Architecture
 
 ```
                     ┌─────────────────┐
@@ -37,188 +52,85 @@ This system showcases:
         ┌───────▼──────┐
         │    Kafka     │
         │  (Events)    │
-        └───────┬──────┘
-                │
-        ┌───────▼──────┐
-        │   Airflow    │
-        │  (ETL DAGs)  │
         └──────────────┘
 ```
 
-## Technology Stack
+## 🛠️ Technology Stack
 
-### Backend (Primary Focus)
-- **Java/Spring Boot**: Inventory service, Reorder service, API Gateway
-  - RESTful APIs, dependency injection, Spring Data JPA
-  - Error handling, validation, security
-- **Python/FastAPI**: Analytics service
-  - Async APIs, data aggregation, analytics calculations
-- **API Gateway**: Spring Cloud Gateway
-  - Request routing, rate limiting, circuit breakers
-- **Databases**:
-  - **PostgreSQL**: Primary transactional database
-  - **MongoDB**: Analytics and document storage
-  - **Redis**: Caching layer (improves API response time by 85-95%)
+### Backend Services
+- **Java 17** with Spring Boot 3.x
+  - Spring Data JPA for database operations
+  - Spring Cloud Gateway for API routing
+  - Spring Kafka for event streaming
+- **Python 3.11** with FastAPI
+  - Async API endpoints
+  - Pydantic for data validation
+  - Motor for async MongoDB operations
 
-### Data Engineering (Secondary Focus)
-- **Apache Kafka**: Event streaming platform
-  - Real-time event processing
-  - Event-driven architecture
-- **Apache Airflow**: Workflow orchestration
-  - ETL pipeline scheduling
-  - Data quality checks
-  - Batch processing
-- **Data Pipeline Service**: Python-based ETL
-  - Extract, Transform, Load operations
-  - Data validation and quality checks
+### Databases
+- **PostgreSQL 14**: Primary transactional database with ACID compliance
+- **MongoDB 6.0**: Document store for analytics and aggregations
+- **Redis 7**: High-performance caching layer
+
+### Data Engineering
+- **Apache Kafka**: Distributed event streaming platform
+- **Apache Airflow**: Workflow orchestration and ETL scheduling
+- **Apache Flink**: Stream processing (optional)
 
 ### Infrastructure
-- **Docker & Docker Compose**: Containerization
-- **Prometheus & Grafana**: Monitoring and metrics
-- **Swagger/OpenAPI**: API documentation
+- **Docker & Docker Compose**: Containerization and orchestration
+- **Nginx**: Static file serving for frontend
+- **Prometheus & Grafana**: Monitoring and metrics (optional)
 
-## Key Features
+## 📋 Prerequisites
 
-### Backend Features (70%)
+- Docker Desktop (v20.10+)
+- Docker Compose (v2.0+)
+- 8GB RAM minimum (16GB recommended)
+- 10GB free disk space
 
-1. **Microservices Architecture**
-   - Independent services with clear responsibilities
-   - Service-to-service communication (REST + Kafka events)
-   - API Gateway for centralized routing
+## 🚀 Quick Start
 
-2. **RESTful APIs**
-   - 45+ API endpoints
-   - CRUD operations for products, categories, warehouses, inventory
-   - Pagination, sorting, filtering
-   - Swagger documentation
-
-3. **Caching Strategy**
-   - Redis caching for frequently accessed data
-   - Cache-aside pattern
-   - TTL-based cache expiration
-   - 85-95% reduction in database queries
-
-4. **Database Design**
-   - PostgreSQL for transactional data (ACID compliance)
-   - MongoDB for analytics and document storage
-   - Proper indexing and query optimization
-   - Database migrations and schema management
-
-5. **Error Handling & Validation**
-   - Custom exception handling
-   - Request validation
-   - Error response standardization
-   - Logging and monitoring
-
-6. **API Gateway**
-   - Request routing
-   - Rate limiting
-   - Circuit breakers
-   - Request/response logging
-
-### Data Engineering Features (30%)
-
-1. **ETL Pipelines**
-   - Airflow DAGs for scheduled data processing
-   - Extract data from PostgreSQL
-   - Transform and aggregate data
-   - Load into analytics tables
-
-2. **Event Streaming**
-   - Kafka for event-driven architecture
-   - Real-time event processing
-   - Event producers and consumers
-   - Event schema management
-
-3. **Data Quality Checks**
-   - Validation rules for data integrity
-   - Anomaly detection
-   - Data quality monitoring
-   - Automated alerts
-
-4. **Analytics & Aggregations**
-   - Inventory velocity calculations
-   - Sales trends and patterns
-   - Stock turnover metrics
-   - Warehouse summaries
-
-## Quick Start
-
-> **🚀 New to this project?** 
-> - **Step-by-step guide**: [RUN_STEPS.md](./RUN_STEPS.md) - Detailed instructions to run the project
-> - **M1 Mac setup**: [QUICKSTART.md](./QUICKSTART.md) - M1 Mac optimized setup guide
-> - **No code changes needed**: [NO_CHANGES_NEEDED.md](./NO_CHANGES_NEEDED.md) - Verification that existing code works
-
-### Prerequisites
-- Docker and Docker Compose
-- M1 MacBook Pro recommended (ARM64 architecture)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd inventory_management_sys
-   ```
-
-2. **Start minimal services (Recommended for M1 Mac)**
-   ```bash
-   # Minimal setup with essential services only
-   docker-compose -f docker-compose.dev.yml up -d
-   ```
-   
-   This starts:
-   - PostgreSQL (database)
-   - Redis (caching)
-   - MongoDB (analytics)
-   - Kafka + Zookeeper (event streaming)
-   - API Gateway
-   - Inventory Service
-   - Analytics Service
-   - Reorder Service
-
-3. **Wait for services to be healthy (1-2 minutes)**
-   ```bash
-   # Check service status
-   docker-compose -f docker-compose.dev.yml ps
-   
-   # Check logs
-   docker-compose -f docker-compose.dev.yml logs -f
-   ```
-
-4. **Seed sample data**
-   ```bash
-   ./scripts/seed-data.sh
-   ```
-
-5. **Verify services are running**
-   ```bash
-   # Health check endpoints
-   curl http://localhost:9000/actuator/health  # API Gateway
-   curl http://localhost:8080/actuator/health  # Inventory Service
-   curl http://localhost:8000/health           # Analytics Service
-   
-   # Or use the health check script
-   ./scripts/health-check.sh
-   ```
-
-### Full Setup (Optional - for demonstration only)
-
-If you need all services including monitoring and ETL:
+### 1. Clone the Repository
 ```bash
-docker-compose up -d
+git clone <repository-url>
+cd inventory_management_sys
 ```
 
-**Note**: The full setup includes Elasticsearch, Flink, Airflow, Prometheus, and Grafana which require significant resources and may not run smoothly on M1 Mac.
+### 2. Start Services
+```bash
+# Start all services (optimized for M1/M2 Macs)
+docker-compose -f docker-compose.dev.yml up -d
 
-6. **Access services**
-   - API Gateway: http://localhost:9000
-   - Inventory Service: http://localhost:8080
-   - Swagger UI: http://localhost:8080/swagger-ui.html
-   - Analytics Service: http://localhost:8000
-   - API Docs: http://localhost:8000/api/docs
+# Wait for services to be healthy (1-2 minutes)
+docker-compose -f docker-compose.dev.yml ps
+```
 
-## API Examples
+### 3. Seed Sample Data
+```bash
+# Install Python dependencies (if needed)
+pip install requests
+
+# Run seed script
+./scripts/seed-data.sh
+```
+
+### 4. Verify Installation
+```bash
+# Check service health
+./scripts/health-check.sh
+
+# Test API endpoints
+./scripts/test-apis.sh
+```
+
+### 5. Access the Application
+- **Frontend Dashboard**: http://localhost:3000
+- **API Gateway**: http://localhost:9000
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Analytics API Docs**: http://localhost:8000/docs
+
+## 📖 API Examples
 
 ### Create a Product
 ```bash
@@ -234,7 +146,7 @@ curl -X POST http://localhost:9000/api/v1/products \
   }'
 ```
 
-### Get Inventory
+### Get Inventory Level
 ```bash
 curl http://localhost:9000/api/v1/inventory/LAPTOP-001/WAREHOUSE-001
 ```
@@ -249,106 +161,31 @@ curl -X POST "http://localhost:9000/api/v1/inventory/sale?sku=LAPTOP-001&warehou
 curl http://localhost:9000/api/v1/analytics/velocity/LAPTOP-001/WAREHOUSE-001?period_days=30
 ```
 
-### Get Products with Pagination
+### List Products with Pagination
 ```bash
 curl "http://localhost:9000/api/v1/products?pageNumber=0&pageSize=10&sortBy=name&direction=ASC"
 ```
 
-See [API Documentation](./docs/API.md) for complete API reference.
-
-## Demonstration
-
-### Run Demo Script
-```bash
-./scripts/demo.sh
-```
-
-This script demonstrates:
-- API endpoints (CRUD operations)
-- Caching performance (cache hit/miss)
-- Event streaming (Kafka events)
-- ETL pipeline (Airflow DAGs)
-- Data quality checks
-
-See [Demo Guide](./docs/DEMO.md) for detailed demonstration steps.
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 inventory_management_sys/
-├── inventory-service/      # Spring Boot service (Java)
-├── analytics-service/      # FastAPI service (Python)
-├── reorder-service/        # Spring Boot service (Java)
-├── api-gateway/            # Spring Cloud Gateway
-├── data-pipeline-service/  # ETL pipeline (Python)
-├── airflow/                # Airflow DAGs
-├── stream-processor/       # Kafka consumers (Scala)
-├── infrastructure/         # Docker, Kubernetes configs
-├── scripts/                # Utility scripts
-└── docs/                   # Documentation
+├── inventory-service/      # Spring Boot - Core inventory management
+├── analytics-service/      # FastAPI - Analytics and reporting
+├── reorder-service/        # Spring Boot - Automated reordering
+├── api-gateway/            # Spring Cloud Gateway - API routing
+├── data-pipeline-service/  # Python - ETL pipelines
+├── airflow/                # Airflow DAGs for data processing
+├── stream-processor/       # Scala - Kafka stream processing
+├── frontend/               # Static HTML/CSS/JS dashboard
+├── infrastructure/         # Docker configs and init scripts
+├── scripts/                # Utility scripts for setup and testing
+└── monitoring/             # Prometheus and Grafana configs
 ```
 
-## Documentation
+## 🧪 Testing
 
-- [Architecture](./docs/ARCHITECTURE.md) - System architecture overview
-- [Backend Design](./docs/BACKEND_DESIGN.md) - Backend architecture details
-- [API Documentation](./docs/API.md) - Complete API reference
-- [Data Engineering](./docs/DATA_ENGINEERING.md) - ETL and data processing
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Deployment instructions
-- [Demo Guide](./docs/DEMO.md) - How to demonstrate the system
-- [Troubleshooting](./docs/TROUBLESHOOTING.md) - Common issues and solutions
-
-## Performance
-
-### API Response Times
-- **Cached requests**: < 10ms (Redis cache hit)
-- **Database queries**: 50-200ms (depending on complexity)
-- **Average response time**: 100-150ms
-
-### Caching Impact
-- **Cache hit rate**: 85-95%
-- **Database query reduction**: 85-95%
-- **API response time improvement**: 80-90%
-
-### Throughput
-- **API Gateway**: 1000+ requests/second
-- **Inventory Service**: 500+ requests/second
-- **Analytics Service**: 300+ requests/second
-
-## Design Decisions
-
-### Why Microservices?
-- Independent scaling of services
-- Technology flexibility (Java, Python, Scala)
-- Clear separation of concerns
-- Easier maintenance and deployment
-
-### Why Multiple Databases?
-- **PostgreSQL**: ACID compliance for transactional data
-- **MongoDB**: Flexible schema for analytics data
-- **Redis**: High-performance caching layer
-
-### Why API Gateway?
-- Centralized routing and load balancing
-- Rate limiting and security
-- Request/response transformation
-- Circuit breakers for resilience
-
-### Why Kafka?
-- Decoupled services through events
-- Real-time event processing
-- Event replay capability
-- Scalable message streaming
-
-### Why Airflow?
-- Workflow orchestration
-- Scheduled ETL jobs
-- Data quality monitoring
-- Dependency management
-
-## Testing
-
-### Run Tests
+### Run All Tests
 ```bash
 make test
 ```
@@ -365,37 +202,117 @@ cd analytics-service && pytest
 cd reorder-service && mvn test
 ```
 
-## Deployment
-
-### Local Deployment
+### Integration Tests
 ```bash
-docker-compose up -d
+# Run API integration tests
+./scripts/test-apis.sh
 ```
 
-### Production Deployment
+## 📊 Performance Metrics
+
+- **API Response Time**: 
+  - Cached requests: <10ms
+  - Database queries: 50-200ms
+  - Average: 100-150ms
+
+- **Caching Impact**:
+  - Cache hit rate: 85-95%
+  - Database query reduction: 85-95%
+  - Response time improvement: 80-90%
+
+- **Throughput**:
+  - API Gateway: 1000+ req/s
+  - Inventory Service: 500+ req/s
+  - Analytics Service: 300+ req/s
+
+## 🔧 Configuration
+
+### Environment Variables
+
+#### Inventory Service
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/inventory
+SPRING_DATASOURCE_USERNAME=inventory_user
+SPRING_DATASOURCE_PASSWORD=inventory_pass
+SPRING_REDIS_HOST=redis
+SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+```
+
+#### Analytics Service
+```bash
+MONGODB_URL=mongodb://admin:admin_pass@mongodb:27017/inventory_catalog
+REDIS_URL=redis://:redis_pass@redis:6379
+KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+```
+
+## 🐛 Troubleshooting
+
+### Services Won't Start
+```bash
+# Check logs
+docker-compose -f docker-compose.dev.yml logs [service-name]
+
+# Restart services
+docker-compose -f docker-compose.dev.yml restart
+
+# Clean restart
+docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+### Database Connection Issues
+```bash
+# Verify PostgreSQL is healthy
+docker exec -it inventory-postgres pg_isready -U inventory_user
+
+# Check Redis connection
+docker exec -it inventory-redis redis-cli -a redis_pass ping
+```
+
+### Frontend Not Loading
+```bash
+# Check nginx logs
+docker-compose -f docker-compose.dev.yml logs frontend
+
+# Verify files are mounted
+docker exec -it inventory-frontend ls /usr/share/nginx/html
+```
+
+## 📚 Documentation
+
+- **API Documentation**: Available at `/swagger-ui.html` for Java services and `/docs` for Python services
+- **Architecture Decisions**: See `docs/ARCHITECTURE.md`
+- **Deployment Guide**: See `docs/DEPLOYMENT.md`
+- **Demo Guide**: See `docs/DEMO.md`
+
+## 🚀 Deployment
+
+### Local Development
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+### Production
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-See [Deployment Guide](./docs/DEPLOYMENT.md) for detailed instructions.
-
-## Monitoring
-
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Health Checks**: http://localhost:9000/actuator/health
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+## 📝 License
 
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contact
+## 🙏 Acknowledgments
 
-For questions or issues, please open an issue on GitHub.
+Built with modern enterprise patterns and best practices for microservices architecture, demonstrating production-ready backend development and data engineering skills.
+
+## 📧 Contact
+
+For questions or feedback, please open an issue on GitHub.
