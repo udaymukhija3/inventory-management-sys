@@ -40,8 +40,20 @@ spring:
               maxBackoff: 500ms
               factor: 2
 
+  # Redis configuration for rate limiting
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:}
+
 server:
   port: 9000
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your_jwt_secret_MUST_be_at_least_48_characters_long_for_prod}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 management:
   endpoints:
@@ -49,3 +61,8 @@ management:
       exposure:
         include: health,info,metrics,prometheus
 
+logging:
+  level:
+    com.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: DEBUG
