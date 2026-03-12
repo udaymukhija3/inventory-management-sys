@@ -1,32 +1,41 @@
 #!/bin/bash
 
-# Seed data script for demonstration
-# This script populates the database with sample data using API endpoints
+# Deterministic SQL seed for the supported demo path.
 
-set -e
+set -euo pipefail
 
-echo "Seeding database with sample data..."
-echo ""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-ims-postgres}"
+POSTGRES_DB="${POSTGRES_DB:-inventory}"
+POSTGRES_USER="${POSTGRES_USER:-inventory_user}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-inventory_pass}"
+SEED_FILE="$REPO_ROOT/infrastructure/docker/postgres/demo-seed.sql"
 
-# Check if Python is available
-if ! command -v python3 &> /dev/null; then
-    echo "Error: Python3 is not installed"
-    echo "Please install Python3 to use this script"
+echo "Seeding deterministic demo data..."
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Error: docker is required"
     exit 1
 fi
 
-# Check if requests library is available
-if ! python3 -c "import requests" 2>/dev/null; then
-    echo "Error: Python requests library is not installed"
-    echo "Please install it: pip install requests"
+if ! docker info >/dev/null 2>&1; then
+    echo "Error: Docker Desktop must be running before you seed demo data."
     exit 1
 fi
 
-# Use Python script for better API response handling
-if [ -f "scripts/seed-data-api.py" ]; then
-    python3 scripts/seed-data-api.py
-else
-    echo "Error: seed-data-api.py not found"
-    echo "Please make sure you're running this from the project root directory"
+if [ ! -f "$SEED_FILE" ]; then
+    echo "Error: $SEED_FILE not found"
     exit 1
 fi
+
+echo "Waiting for application tables to exist..."
+until docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "select to_regclass('public.products')" | grep -q products; do
+    sleep 2
+done
+
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" -i "$POSTGRES_CONTAINER" \
+    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$SEED_FILE"
+
+echo "Deterministic demo data loaded."

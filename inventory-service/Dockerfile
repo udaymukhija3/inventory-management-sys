@@ -1,5 +1,5 @@
 # Multi-stage build for optimization
-FROM --platform=linux/arm64 maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
@@ -12,14 +12,14 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Runtime stage
-FROM --platform=linux/arm64 eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy JAR from build stage
-COPY --from=build /app/target/inventory-service-1.0.0.jar app.jar
+# Copy the Spring Boot artifact produced by the Maven build.
+COPY --from=build /app/target/inventory-management-system-*.jar app.jar
 
 
 

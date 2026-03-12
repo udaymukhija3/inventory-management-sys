@@ -35,9 +35,10 @@ USER appuser
 # Add local bin to PATH
 ENV PATH=/home/appuser/.local/bin:$PATH
 
+EXPOSE 8001
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD python -c "import sys; sys.exit(0)" || exit 1
+  CMD sh -c 'curl -fs http://localhost:${PIPELINE_METRICS_PORT:-8001}/metrics >/dev/null || exit 1'
 
 CMD ["python", "data_pipeline.py"]
-

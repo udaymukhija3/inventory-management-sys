@@ -1,19 +1,26 @@
 groups:
-  - name: inventory_alerts
+  - name: inventory_pipeline_alerts
     rules:
-      - alert: LowStock
-        expr: inventory_quantity_total < 10
+      - alert: PipelineStale
+        expr: time() - pipeline_last_success_timestamp > 900
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Low stock detected for {{sku}}"
-      
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
-        for: 5m
+          summary: "Inventory ETL has not completed successfully in the last 15 minutes"
+
+      - alert: InvalidInventoryEventsDetected
+        expr: increase(pipeline_events_invalid_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Invalid inventory events were routed to the DLQ in the last 15 minutes"
+
+      - alert: PipelineFailuresIncreasing
+        expr: increase(pipeline_run_failures_total[15m]) > 0
+        for: 0m
         labels:
           severity: critical
         annotations:
-          summary: "High error rate detected for {{service}}"
-
+          summary: "Inventory ETL has recorded at least one failed batch in the last 15 minutes"

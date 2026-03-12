@@ -1,9 +1,5 @@
-import pytest
-from app.services.predictor import DemandPredictor
+from app.services.velocity_analyzer import VelocityAnalyzer
 
-@pytest.mark.asyncio
-async def test_predictor_initialization():
-    predictor = DemandPredictor()
-    assert predictor.models == {}
-    assert predictor.model_metrics == {}
-
+def test_velocity_analyzer_initialization():
+    analyzer = VelocityAnalyzer()
+    assert analyzer is not None

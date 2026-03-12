@@ -69,3 +69,100 @@ CREATE TABLE IF NOT EXISTS analytics.processed_metrics (
 
 CREATE INDEX IF NOT EXISTS idx_metrics_sku_wh ON analytics.processed_metrics(sku, warehouse_id);
 CREATE INDEX IF NOT EXISTS idx_metrics_processed_at ON analytics.processed_metrics(processed_at);
+
+CREATE TABLE IF NOT EXISTS analytics.processed_event_log (
+    event_id VARCHAR(128) PRIMARY KEY,
+    sku VARCHAR(255) NOT NULL,
+    warehouse_id VARCHAR(255) NOT NULL,
+    event_type VARCHAR(64) NOT NULL,
+    quantity_change INTEGER NOT NULL,
+    source_timestamp TIMESTAMP NOT NULL,
+    reference_id VARCHAR(255),
+    payload_hash VARCHAR(64) NOT NULL,
+    first_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_run_id VARCHAR(36)
+);
+
+CREATE TABLE IF NOT EXISTS analytics.invalid_inventory_events (
+    id BIGSERIAL PRIMARY KEY,
+    run_id VARCHAR(36) NOT NULL,
+    batch_key VARCHAR(64) NOT NULL,
+    event_id VARCHAR(128),
+    validation_errors TEXT NOT NULL,
+    raw_payload JSONB NOT NULL,
+    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS analytics.pipeline_runs (
+    run_id VARCHAR(36) PRIMARY KEY,
+    batch_key VARCHAR(64) NOT NULL,
+    mode VARCHAR(32) NOT NULL,
+    source VARCHAR(32) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    completed_at TIMESTAMP,
+    replay_window_start TIMESTAMP,
+    replay_window_end TIMESTAMP,
+    source_event_count INTEGER NOT NULL DEFAULT 0,
+    force_reprocess BOOLEAN NOT NULL DEFAULT FALSE,
+    valid_event_count INTEGER NOT NULL DEFAULT 0,
+    duplicate_event_count INTEGER NOT NULL DEFAULT 0,
+    invalid_event_count INTEGER NOT NULL DEFAULT 0,
+    processed_metric_count INTEGER NOT NULL DEFAULT 0,
+    parquet_path TEXT,
+    manifest_path TEXT,
+    dq_status VARCHAR(16),
+    dq_report JSONB,
+    error_message TEXT
+);
+
+ALTER TABLE analytics.pipeline_runs
+    ADD COLUMN IF NOT EXISTS force_reprocess BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS analytics.metric_history (
+    id BIGSERIAL PRIMARY KEY,
+    batch_key VARCHAR(64) NOT NULL,
+    run_id VARCHAR(36) NOT NULL,
+    sku VARCHAR(255) NOT NULL,
+    warehouse_id VARCHAR(255) NOT NULL,
+    velocity_7d DOUBLE PRECISION NOT NULL DEFAULT 0,
+    velocity_30d DOUBLE PRECISION NOT NULL DEFAULT 0,
+    volatility DOUBLE PRECISION NOT NULL DEFAULT 0,
+    trend DOUBLE PRECISION NOT NULL DEFAULT 0,
+    seasonality_index DOUBLE PRECISION NOT NULL DEFAULT 1,
+    stockout_risk DOUBLE PRECISION NOT NULL DEFAULT 0,
+    reorder_recommendation INTEGER NOT NULL DEFAULT 0,
+    source_event_count INTEGER NOT NULL DEFAULT 0,
+    last_event_timestamp TIMESTAMP,
+    processed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_metric_history_batch UNIQUE (batch_key, sku, warehouse_id)
+);
+
+CREATE TABLE IF NOT EXISTS analytics.current_metrics (
+    sku VARCHAR(255) NOT NULL,
+    warehouse_id VARCHAR(255) NOT NULL,
+    velocity_7d DOUBLE PRECISION NOT NULL DEFAULT 0,
+    velocity_30d DOUBLE PRECISION NOT NULL DEFAULT 0,
+    volatility DOUBLE PRECISION NOT NULL DEFAULT 0,
+    trend DOUBLE PRECISION NOT NULL DEFAULT 0,
+    seasonality_index DOUBLE PRECISION NOT NULL DEFAULT 1,
+    stockout_risk DOUBLE PRECISION NOT NULL DEFAULT 0,
+    reorder_recommendation INTEGER NOT NULL DEFAULT 0,
+    source_event_count INTEGER NOT NULL DEFAULT 0,
+    last_event_timestamp TIMESTAMP,
+    last_run_id VARCHAR(36) NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (sku, warehouse_id)
+);
+
+CREATE TABLE IF NOT EXISTS analytics.data_quality_runs (
+    run_id VARCHAR(36) PRIMARY KEY,
+    status VARCHAR(16) NOT NULL,
+    report JSONB NOT NULL,
+    checked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pipeline_runs_status ON analytics.pipeline_runs(status, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_metric_history_processed_at ON analytics.metric_history(processed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_invalid_inventory_events_recorded_at ON analytics.invalid_inventory_events(recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_current_metrics_updated_at ON analytics.current_metrics(updated_at DESC);

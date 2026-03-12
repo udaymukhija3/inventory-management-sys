@@ -1,28 +1,150 @@
 {
-  "dashboard": {
-    "title": "Inventory Management Dashboard",
-    "panels": [
-      {
-        "title": "Inventory Levels",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "inventory_quantity_total",
-            "legendFormat": "{{sku}}"
-          }
-        ]
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
       },
-      {
-        "title": "Request Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(http_requests_total[5m])",
-            "legendFormat": "{{service}}"
-          }
-        ]
-      }
-    ]
-  }
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "time() - pipeline_last_success_timestamp",
+          "legendFormat": "Pipeline lag"
+        }
+      ],
+      "title": "Pipeline Freshness Lag",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "increase(pipeline_events_invalid_total[15m])",
+          "legendFormat": "Invalid events"
+        },
+        {
+          "expr": "increase(pipeline_run_failures_total[15m])",
+          "legendFormat": "Failed runs"
+        }
+      ],
+      "title": "Pipeline Error Signals",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum by (endpoint, status) (rate(http_requests_total[5m]))",
+          "legendFormat": "{{endpoint}} {{status}}"
+        }
+      ],
+      "title": "Analytics Request Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, endpoint) (rate(http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{endpoint}} p95"
+        }
+      ],
+      "title": "Analytics API Latency p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "rate(pipeline_batches_processed_total[5m])",
+          "legendFormat": "Batches/sec"
+        },
+        {
+          "expr": "pipeline_last_batch_size",
+          "legendFormat": "Last batch size"
+        }
+      ],
+      "title": "ETL Throughput",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "inventory",
+    "etl",
+    "demo"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "Inventory ETL Demo Dashboard",
+  "version": 1
 }
-

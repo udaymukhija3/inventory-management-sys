@@ -4,11 +4,14 @@ Real-time ETL pipeline for inventory data processing that consumes events from K
 
 ## Features
 
-- **Kafka Consumption**: Consumes inventory events from Kafka
+- **Kafka Consumption**: Consumes inventory events from Kafka in stream mode
+- **Backfills**: Rebuilds analytics from `inventory_transactions` for a date range
 - **Data Transformation**: Transforms events into structured data
 - **Feature Engineering**: Calculates velocity, volatility, trend, and seasonality (basic analytics, not ML)
 - **Analytics Calculation**: Calculates stockout risk and reorder recommendations using basic statistical methods
-- **Data Output**: Writes to PostgreSQL, Redis, and Parquet files
+- **Idempotency**: Deduplicates events via `analytics.processed_event_log`
+- **Data Quality**: Persists freshness/range/uniqueness/reconciliation checks per run
+- **Data Output**: Writes to PostgreSQL, Redis, and partitioned Parquet files
 - **Event Publishing**: Publishes alerts to Kafka topics
 
 ## Configuration
@@ -24,11 +27,25 @@ Environment variables:
 - `REDIS_PASSWORD`: Redis password (optional)
 - `BATCH_SIZE`: Batch processing size (default: 100)
 - `DATA_DIR`: Path for Parquet output (default: ./data)
+- `PIPELINE_METRICS_PORT`: Prometheus metrics port (default: 8001)
+- `PIPELINE_FORCE_REPROCESS`: Recompute metrics even when an event already exists in the dedupe log
 
 ## Usage
 
 ```bash
 python data_pipeline.py
+```
+
+Run a bounded backfill:
+
+```bash
+python data_pipeline.py --mode backfill --backfill-start 2026-03-01T00:00:00 --backfill-end 2026-03-13T00:00:00
+```
+
+Force a backfill reprocess for an already-seen range:
+
+```bash
+python data_pipeline.py --mode backfill --backfill-start 2026-03-01T00:00:00 --backfill-end 2026-03-13T00:00:00 --force-reprocess
 ```
 
 Or with Docker:
@@ -71,8 +88,12 @@ docker run -e POSTGRES_PASSWORD=your_password data-pipeline-service
 ## Output
 
 ### PostgreSQL
-- **analytics.processed_metrics**: Processed metrics table
-- Stores: velocity, volatility, trend, seasonality, stockout risk, reorder recommendation
+- **analytics.current_metrics**: Current-state serving table keyed by `sku + warehouse_id`
+- **analytics.metric_history**: Idempotent history table keyed by `batch_key + sku + warehouse_id`
+- **analytics.pipeline_runs**: Run manifests and processing counts
+- **analytics.data_quality_runs**: Per-run data quality reports
+- **analytics.processed_event_log**: Event-level dedupe log
+- **analytics.invalid_inventory_events**: Invalid-event sink with raw payloads and errors
 
 ### Redis
 - **metrics:{sku}:{warehouse_id}**: Cached metrics
@@ -80,12 +101,27 @@ docker run -e POSTGRES_PASSWORD=your_password data-pipeline-service
 - TTL: 1 hour
 
 ### Parquet Files
-- **processed_metrics_{timestamp}.parquet**: Processed metrics archive
-- Stores: All processed metrics for data lake/warehouse
+- **run_date=YYYY-MM-DD/run_id=<uuid>/processed_metrics.parquet**: Partitioned run output
+- **run_date=YYYY-MM-DD/run_id=<uuid>/manifest.json**: Run manifest with counts and DQ status
 
 ### Kafka Topics
 - **inventory-alerts**: High stockout risk alerts
 - Publishes: Stockout risk alerts with recommended reorder quantities
+- **inventory-events-dlq**: Invalid-event sink for schema violations
+
+## Tests
+
+```bash
+bash ./scripts/run-data-pipeline-tests.sh
+```
+
+These behavioral tests cover:
+
+- Java `LocalDateTime` array timestamps from the inventory service
+- default idempotency in `analytics.processed_event_log`
+- explicit `--force-reprocess` behavior
+- Parquet + manifest generation
+- a passing DQ run against matching source transactions
 
 ## Notes
 

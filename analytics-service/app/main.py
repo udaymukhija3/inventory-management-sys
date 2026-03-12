@@ -7,7 +7,7 @@ import uvicorn
 from prometheus_client import make_asgi_app
 from app.config import get_settings
 from app.api import predictions, analytics, health
-from app.utils.database import init_mongodb, init_redis, close_connections
+from app.utils.database import close_connections
 from app.middleware.logging import LoggingMiddleware
 from app.middleware.metrics import MetricsMiddleware
 
@@ -23,20 +23,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
-    # Startup
     logger.info("Starting Analytics Service...")
-    
-    # Initialize database connections
-    await init_mongodb()
-    await init_redis()
-    
-    # Model manager removed (no ML components)
-    
     logger.info("Analytics Service started successfully")
-    
     yield
-    
-    # Shutdown
     logger.info("Shutting down Analytics Service...")
     await close_connections()
     logger.info("Analytics Service shutdown complete")

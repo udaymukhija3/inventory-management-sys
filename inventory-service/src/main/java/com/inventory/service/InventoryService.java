@@ -91,6 +91,7 @@ public class InventoryService {
                 request.getWarehouseId(),
                 request.getQuantityChange(),
                 EventType.INVENTORY_UPDATED);
+        event.setReferenceId("txn-" + transaction.getId());
         eventPublisher.publishEvent(event);
 
         // Update cache
@@ -107,6 +108,7 @@ public class InventoryService {
      * Prevents overselling by locking the row during the reservation check.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = "inventory", key = "#sku + '_' + #warehouseId")
     @Retryable(retryFor = { Exception.class }, maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public InventoryResponse reserveInventory(String sku, String warehouseId, Integer quantity) {
         log.debug("Reserving {} units for SKU: {}, Warehouse: {}", quantity, sku, warehouseId);
@@ -141,6 +143,7 @@ public class InventoryService {
 
         // Publish event
         InventoryEvent event = new InventoryEvent(sku, warehouseId, -quantity, EventType.RESERVED);
+        event.setReferenceId("txn-" + transaction.getId());
         eventPublisher.publishEvent(event);
 
         // Update cache
@@ -155,6 +158,7 @@ public class InventoryService {
      * Release a reservation with pessimistic locking.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = "inventory", key = "#sku + '_' + #warehouseId")
     @Retryable(retryFor = { Exception.class }, maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public InventoryResponse releaseReservation(String sku, String warehouseId, Integer quantity) {
         log.debug("Releasing {} reserved units for SKU: {}, Warehouse: {}", quantity, sku, warehouseId);
@@ -177,6 +181,7 @@ public class InventoryService {
 
         // Publish event
         InventoryEvent event = new InventoryEvent(sku, warehouseId, quantity, EventType.RELEASED);
+        event.setReferenceId("txn-" + transaction.getId());
         eventPublisher.publishEvent(event);
 
         // Update cache
@@ -191,6 +196,7 @@ public class InventoryService {
      * Record a sale with pessimistic locking.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = "inventory", key = "#sku + '_' + #warehouseId")
     @Retryable(retryFor = { Exception.class }, maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public InventoryResponse recordSale(String sku, String warehouseId, Integer quantity) {
         log.debug("Recording sale of {} units for SKU: {}, Warehouse: {}", quantity, sku, warehouseId);
@@ -213,6 +219,7 @@ public class InventoryService {
 
         // Publish event
         InventoryEvent event = new InventoryEvent(sku, warehouseId, -quantity, EventType.INVENTORY_UPDATED);
+        event.setReferenceId("txn-" + transaction.getId());
         eventPublisher.publishEvent(event);
 
         // Update cache
@@ -227,6 +234,7 @@ public class InventoryService {
      * Record inventory receipt (restock) with pessimistic locking.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = "inventory", key = "#sku + '_' + #warehouseId")
     @Retryable(retryFor = { Exception.class }, maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public InventoryResponse recordReceipt(String sku, String warehouseId, Integer quantity) {
         log.debug("Recording receipt of {} units for SKU: {}, Warehouse: {}", quantity, sku, warehouseId);
@@ -249,6 +257,7 @@ public class InventoryService {
 
         // Publish event
         InventoryEvent event = new InventoryEvent(sku, warehouseId, quantity, EventType.RESTOCKED);
+        event.setReferenceId("txn-" + transaction.getId());
         eventPublisher.publishEvent(event);
 
         // Update cache

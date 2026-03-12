@@ -25,13 +25,11 @@ dag = DAG(
 # Configuration
 INVENTORY_SERVICE_URL = os.getenv('INVENTORY_SERVICE_URL', 'http://inventory-service:8080')
 REORDER_SERVICE_URL = os.getenv('REORDER_SERVICE_URL', 'http://reorder-service:8081')
-API_KEY = os.getenv('SERVICE_API_KEY', 'default-key')
+INVENTORY_SERVICE_USERNAME = os.getenv('INVENTORY_SERVICE_USERNAME', 'demo_user')
+INVENTORY_SERVICE_PASSWORD = os.getenv('INVENTORY_SERVICE_PASSWORD', 'demo_pass')
 
-def get_auth_headers():
-    return {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
-    }
+def get_auth():
+    return (INVENTORY_SERVICE_USERNAME, INVENTORY_SERVICE_PASSWORD)
 
 def check_low_stock(**context):
     """
@@ -41,8 +39,8 @@ def check_low_stock(**context):
     print("Checking for low stock items...")
     try:
         response = requests.get(
-            f"{INVENTORY_SERVICE_URL}/api/v1/inventory/low-stock/reorder-needed",
-            headers=get_auth_headers(),
+            f"{INVENTORY_SERVICE_URL}/api/v1/inventory/needs-reorder",
+            auth=get_auth(),
             timeout=10
         )
         response.raise_for_status()
@@ -95,7 +93,6 @@ def generate_orders(**context):
             response = requests.post(
                 f"{REORDER_SERVICE_URL}/api/v1/orders",
                 json=payload,
-                headers=get_auth_headers(),
                 timeout=10
             )
             

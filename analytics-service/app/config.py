@@ -6,9 +6,13 @@ class Settings(BaseSettings):
     service_name: str = "analytics-service"
     version: str = "1.0.0"
     
-    # Database
-    mongodb_url: str = "mongodb://localhost:27017"
+    # Data stores
     redis_url: str = "redis://localhost:6379"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+    postgres_db: str = "inventory"
+    postgres_user: str = "inventory_user"
+    postgres_password: str = "inventory_pass"
     
     # API Configuration
     api_prefix: str = "/api/v1"
@@ -19,4 +23,3 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings():
     return Settings()
-

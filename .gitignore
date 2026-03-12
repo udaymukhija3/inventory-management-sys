@@ -73,5 +73,12 @@ Thumbs.db
 *.pkl
 *.model
 /models/
+/data-pipeline-service/data/*.parquet
+/data-pipeline-service/data/run_date=*/
+/artifacts/demo/*.json
+/artifacts/demo/*.md
+/artifacts/demo/*.txt
+/.venv-analytics-tests/
+/.venv-data-pipeline-tests/
 
 .archive/

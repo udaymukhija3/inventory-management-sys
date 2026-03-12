@@ -14,10 +14,14 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import com.inventory.event.InventoryEvent;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.kafka.annotation.EnableKafka;
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+@EnableKafka
+@ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class KafkaConfig {
     
     @Value("${spring.kafka.bootstrap-servers}")

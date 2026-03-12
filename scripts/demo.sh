@@ -1,98 +1,120 @@
 #!/bin/bash
 
-# Demo script to demonstrate the inventory management system
-# This script shows key features: APIs, caching, event streaming, ETL
+set -euo pipefail
 
-set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-BASE_URL="http://localhost:9000"
-INVENTORY_SERVICE="http://localhost:8080"
-ANALYTICS_SERVICE="http://localhost:8000"
-
-echo "========================================="
-echo "Inventory Management System - Demo"
-echo "========================================="
-echo ""
-
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Check if services are running
-echo -e "${BLUE}Checking if services are running...${NC}"
-if ! curl -s -f "$INVENTORY_SERVICE/actuator/health" > /dev/null; then
-    echo -e "${YELLOW}Warning: Inventory service is not running. Please start services first.${NC}"
-    echo "Run: docker-compose up -d"
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE=(docker-compose)
+else
+    echo "Error: docker compose is required"
     exit 1
 fi
 
-echo -e "${GREEN}Services are running!${NC}"
-echo ""
+if ! docker info >/dev/null 2>&1; then
+    echo "Error: Docker Desktop must be running before you call make demo."
+    exit 1
+fi
 
-# 1. Demo: Get Products
-echo -e "${BLUE}1. Demo: Get Products (with pagination)${NC}"
-echo "GET $BASE_URL/api/v1/products?pageNumber=0&pageSize=5"
-curl -s "$BASE_URL/api/v1/products?pageNumber=0&pageSize=5" | jq '.' || echo "Response received"
-echo ""
+INVENTORY_SERVICE="http://localhost:8080"
+ANALYTICS_SERVICE="http://localhost:8000"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-ims-postgres}"
+REDIS_CONTAINER="${REDIS_CONTAINER:-ims-redis}"
+POSTGRES_DB="${POSTGRES_DB:-inventory}"
+POSTGRES_USER="${POSTGRES_USER:-inventory_user}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-inventory_pass}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-redis_pass}"
+INVENTORY_USER="${INVENTORY_SECURITY_USERNAME:-demo_user}"
+INVENTORY_PASSWORD="${INVENTORY_SECURITY_PASSWORD:-demo_pass}"
+DATA_DIR="$REPO_ROOT/data-pipeline-service/data"
+ARTIFACT_DIR="$REPO_ROOT/artifacts/demo"
 
-# 2. Demo: Get Inventory
-echo -e "${BLUE}2. Demo: Get Inventory${NC}"
-echo "GET $BASE_URL/api/v1/inventory/LAPTOP-001/WAREHOUSE-001"
-curl -s "$BASE_URL/api/v1/inventory/LAPTOP-001/WAREHOUSE-001" | jq '.' || echo "Response received"
-echo ""
+mkdir -p "$ARTIFACT_DIR" "$DATA_DIR"
+rm -rf "$DATA_DIR"/run_date=* 2>/dev/null || true
+rm -f "$DATA_DIR"/*.parquet "$DATA_DIR"/*.json 2>/dev/null || true
+rm -f "$ARTIFACT_DIR"/*.txt "$ARTIFACT_DIR"/*.json "$ARTIFACT_DIR"/*.md 2>/dev/null || true
 
-# 3. Demo: Record a Sale
-echo -e "${BLUE}3. Demo: Record a Sale${NC}"
-echo "POST $BASE_URL/api/v1/inventory/sale?sku=LAPTOP-001&warehouseId=WAREHOUSE-001&quantity=2"
-curl -s -X POST "$BASE_URL/api/v1/inventory/sale?sku=LAPTOP-001&warehouseId=WAREHOUSE-001&quantity=2" | jq '.' || echo "Response received"
-echo ""
+echo "Starting supported demo stack..."
+"${COMPOSE[@]}" -f "$REPO_ROOT/docker-compose.dev.yml" up --build -d postgres redis zookeeper kafka inventory-service analytics-service data-pipeline prometheus grafana
 
-# 4. Demo: Get Inventory Again (to show change)
-echo -e "${BLUE}4. Demo: Get Inventory Again (to show quantity changed)${NC}"
-echo "GET $BASE_URL/api/v1/inventory/LAPTOP-001/WAREHOUSE-001"
-curl -s "$BASE_URL/api/v1/inventory/LAPTOP-001/WAREHOUSE-001" | jq '.' || echo "Response received"
-echo ""
+echo "Waiting for services to become healthy..."
+until curl -s -f "$INVENTORY_SERVICE/actuator/health" >/dev/null; do sleep 2; done
+until curl -s -f "$ANALYTICS_SERVICE/health/" >/dev/null; do sleep 2; done
+until curl -s -f "http://localhost:9090/-/ready" >/dev/null; do sleep 2; done
+until curl -s -f "http://localhost:3001/api/health" >/dev/null; do sleep 2; done
 
-# 5. Demo: Get Analytics
-echo -e "${BLUE}5. Demo: Get Analytics (Velocity)${NC}"
-echo "GET $ANALYTICS_SERVICE/api/v1/analytics/velocity/LAPTOP-001/WAREHOUSE-001?period_days=30"
-curl -s "$ANALYTICS_SERVICE/api/v1/analytics/velocity/LAPTOP-001/WAREHOUSE-001?period_days=30" | jq '.' || echo "Response received"
-echo ""
+"$SCRIPT_DIR/seed-data.sh"
 
-# 6. Demo: Get Low Stock Items
-echo -e "${BLUE}6. Demo: Get Low Stock Items${NC}"
-echo "GET $BASE_URL/api/v1/inventory/low-stock?threshold=20"
-curl -s "$BASE_URL/api/v1/inventory/low-stock?threshold=20" | jq '.' || echo "Response received"
-echo ""
+echo "Capturing inventory before the live event..."
+curl -s -u "$INVENTORY_USER:$INVENTORY_PASSWORD" \
+    "$INVENTORY_SERVICE/api/v1/inventory/LAPTOP-001/WAREHOUSE-001" \
+    > "$ARTIFACT_DIR/inventory_before.json"
 
-# 7. Demo: Get Categories
-echo -e "${BLUE}7. Demo: Get Categories${NC}"
-echo "GET $BASE_URL/api/v1/categories"
-curl -s "$BASE_URL/api/v1/categories" | jq '.' || echo "Response received"
-echo ""
+echo "Triggering a live sale event..."
+curl -s -u "$INVENTORY_USER:$INVENTORY_PASSWORD" -X POST \
+    "$INVENTORY_SERVICE/api/v1/inventory/sale?sku=LAPTOP-001&warehouseId=WAREHOUSE-001&quantity=1" \
+    > "$ARTIFACT_DIR/sale_response.json"
 
-# 8. Demo: Get Warehouses
-echo -e "${BLUE}8. Demo: Get Warehouses${NC}"
-echo "GET $BASE_URL/api/v1/warehouses"
-curl -s "$BASE_URL/api/v1/warehouses" | jq '.' || echo "Response received"
-echo ""
+echo "Waiting for the ETL consumer to process the event..."
+sleep 10
 
-# 9. Demo: Health Check
-echo -e "${BLUE}9. Demo: Health Check${NC}"
-echo "GET $BASE_URL/actuator/health"
-curl -s "$BASE_URL/actuator/health" | jq '.' || echo "Response received"
-echo ""
+curl -s -u "$INVENTORY_USER:$INVENTORY_PASSWORD" \
+    "$INVENTORY_SERVICE/api/v1/inventory/LAPTOP-001/WAREHOUSE-001" \
+    > "$ARTIFACT_DIR/inventory_after.json"
 
-echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}Demo completed!${NC}"
-echo -e "${GREEN}=========================================${NC}"
-echo ""
-echo "Next steps:"
-echo "  - Check Swagger UI: http://localhost:8080/swagger-ui.html"
-echo "  - Check Airflow UI: http://localhost:8084 (admin/admin)"
-echo "  - Check Prometheus: http://localhost:9090"
-echo "  - Check Grafana: http://localhost:3000 (admin/admin)"
-echo ""
+curl -s \
+    "$ANALYTICS_SERVICE/api/v1/analytics/velocity/LAPTOP-001/WAREHOUSE-001?period_days=30" \
+    > "$ARTIFACT_DIR/analytics_velocity.json"
 
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
+    "select sku, warehouse_id, velocity_7d, velocity_30d, stockout_risk, updated_at from analytics.current_metrics order by updated_at desc limit 5;" \
+    > "$ARTIFACT_DIR/current_metrics.txt"
+
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
+    "select run_id, status, source_event_count, valid_event_count, duplicate_event_count, invalid_event_count, processed_metric_count, dq_status, completed_at from analytics.pipeline_runs order by completed_at desc nulls last, started_at desc limit 5;" \
+    > "$ARTIFACT_DIR/pipeline_runs.txt"
+
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
+    "select run_id, status, checked_at from analytics.data_quality_runs order by checked_at desc limit 5;" \
+    > "$ARTIFACT_DIR/data_quality_runs.txt"
+
+docker exec "$REDIS_CONTAINER" redis-cli -a "$REDIS_PASSWORD" \
+    HGETALL metrics:LAPTOP-001:WAREHOUSE-001 \
+    > "$ARTIFACT_DIR/redis_metrics.txt"
+
+if ls "$DATA_DIR"/*.parquet >/dev/null 2>&1; then
+    ls -lh "$DATA_DIR"/*.parquet > "$ARTIFACT_DIR/parquet_files.txt"
+elif find "$DATA_DIR" -name '*.parquet' | grep -q .; then
+    find "$DATA_DIR" -name '*.parquet' -print | sort > "$ARTIFACT_DIR/parquet_files.txt"
+else
+    echo "No parquet files were produced" > "$ARTIFACT_DIR/parquet_files.txt"
+fi
+
+LATEST_MANIFEST="$(find "$DATA_DIR" -name manifest.json -print | sort | tail -n 1 || true)"
+if [[ -n "$LATEST_MANIFEST" ]]; then
+    cp "$LATEST_MANIFEST" "$ARTIFACT_DIR/latest_run_manifest.json"
+fi
+
+cat > "$ARTIFACT_DIR/summary.md" <<EOF
+# Demo Summary
+
+- Inventory before live sale: inventory_before.json
+- Inventory after live sale: inventory_after.json
+- Analytics response: analytics_velocity.json
+- Latest Postgres current metrics: current_metrics.txt
+- Latest pipeline runs: pipeline_runs.txt
+- Latest data quality runs: data_quality_runs.txt
+- Latest Redis hash: redis_metrics.txt
+- Generated Parquet files: parquet_files.txt
+- Latest run manifest: latest_run_manifest.json
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3001
+EOF
+
+echo "Demo complete. Artifacts written to $ARTIFACT_DIR"

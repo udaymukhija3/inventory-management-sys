@@ -1,24 +1,33 @@
-import motor.motor_asyncio
 import redis.asyncio as redis
 import logging
+import psycopg2
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-_mongo_client = None
 _redis_client = None
 
-async def init_mongodb():
-    """Initialize MongoDB connection"""
-    global _mongo_client
+def get_postgres_connection():
+    """Create a PostgreSQL connection for analytics reads."""
+    return psycopg2.connect(
+        host=settings.postgres_host,
+        port=settings.postgres_port,
+        dbname=settings.postgres_db,
+        user=settings.postgres_user,
+        password=settings.postgres_password,
+    )
+
+async def check_postgres():
+    """Validate PostgreSQL connectivity."""
     try:
-        _mongo_client = motor.motor_asyncio.AsyncIOMotorClient(settings.mongodb_url)
-        # Test connection
-        await _mongo_client.admin.command('ping')
-        logger.info("MongoDB connection initialized successfully")
+        with get_postgres_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+        logger.info("PostgreSQL connection validated successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize MongoDB: {e}")
+        logger.error(f"Failed to validate PostgreSQL connection: {e}")
         raise
 
 async def init_redis():
@@ -34,11 +43,8 @@ async def init_redis():
         raise
 
 async def get_mongodb_client():
-    """Get MongoDB client instance"""
-    global _mongo_client
-    if _mongo_client is None:
-        await init_mongodb()
-    return _mongo_client
+    """Deprecated compatibility shim for removed MongoDB dependency."""
+    raise RuntimeError("MongoDB is not part of the supported analytics path")
 
 async def get_redis_client():
     """Get Redis client instance"""
@@ -49,12 +55,8 @@ async def get_redis_client():
 
 async def close_connections():
     """Close all database connections"""
-    global _mongo_client, _redis_client
-    
-    if _mongo_client:
-        _mongo_client.close()
-        logger.info("MongoDB connection closed")
-    
+    global _redis_client
+
     if _redis_client:
         await _redis_client.close()
         logger.info("Redis connection closed")

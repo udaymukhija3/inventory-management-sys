@@ -7,7 +7,7 @@ services:
   postgres:
     platform: linux/arm64
     image: postgres:14-alpine
-    container_name: inventory-postgres
+    container_name: ims-postgres
     environment:
       POSTGRES_DB: inventory
       POSTGRES_USER: inventory_user
@@ -30,7 +30,7 @@ services:
   redis:
     platform: linux/arm64
     image: redis:7-alpine
-    container_name: inventory-redis
+    container_name: ims-redis
     command: redis-server --requirepass redis_pass --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
@@ -49,7 +49,7 @@ services:
   mongodb:
     platform: linux/arm64
     image: mongo:6.0
-    container_name: inventory-mongodb
+    container_name: ims-mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin_pass
@@ -67,7 +67,7 @@ services:
   zookeeper:
     platform: linux/arm64
     image: confluentinc/cp-zookeeper:7.5.0
-    container_name: inventory-zookeeper
+    container_name: ims-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -81,7 +81,7 @@ services:
   kafka:
     platform: linux/arm64
     image: confluentinc/cp-kafka:7.5.0
-    container_name: inventory-kafka
+    container_name: ims-kafka
     depends_on:
       - zookeeper
     ports:
@@ -98,7 +98,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -112,7 +112,7 @@ services:
     build:
       context: ./inventory-service
       dockerfile: Dockerfile
-    container_name: inventory-service
+    container_name: ims-inventory-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,6 +128,8 @@ services:
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PASSWORD: redis_pass
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      INVENTORY_SECURITY_USERNAME: ${INVENTORY_SECURITY_USERNAME:-demo_user}
+      INVENTORY_SECURITY_PASSWORD: ${INVENTORY_SECURITY_PASSWORD:-demo_pass}
     ports:
       - "8080:8080"
     networks:
@@ -139,16 +141,17 @@ services:
     build:
       context: ./analytics-service
       dockerfile: Dockerfile
-    container_name: analytics-service
+    container_name: ims-analytics-service
     depends_on:
-      - mongodb
       - redis
-      - kafka
+      - postgres
     environment:
-      # Pydantic BaseSettings automatically maps MONGODB_URL to mongodb_url
-      MONGODB_URL: mongodb://admin:admin_pass@mongodb:27017/inventory_catalog?authSource=admin
       REDIS_URL: redis://:redis_pass@redis:6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: inventory
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_pass
       MODEL_PATH: /app/models
     ports:
       - "8000:8000"
@@ -163,7 +166,7 @@ services:
     build:
       context: ./reorder-service
       dockerfile: Dockerfile
-    container_name: reorder-service
+    container_name: ims-reorder-service
     depends_on:
       - postgres
       - kafka
@@ -184,7 +187,7 @@ services:
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
-    container_name: api-gateway
+    container_name: ims-api-gateway
     depends_on:
       - inventory-service
       - analytics-service
@@ -200,7 +203,7 @@ services:
   # Frontend - Nginx
   frontend:
     image: nginx:alpine
-    container_name: inventory-frontend
+    container_name: ims-frontend
     ports:
       - "3000:80"
     volumes:
@@ -210,10 +213,84 @@ services:
       - inventory-network
     restart: unless-stopped
 
+  data-pipeline:
+    build:
+      context: ./data-pipeline-service
+      dockerfile: Dockerfile
+    container_name: ims-data-pipeline
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: inventory
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_pass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_pass
+      BATCH_SIZE: 1
+      DATA_DIR: /app/data
+      PIPELINE_METRICS_PORT: 8001
+    volumes:
+      - ./data-pipeline-service/data:/app/data
+    expose:
+      - "8001"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ims-prometheus
+    depends_on:
+      - inventory-service
+      - analytics-service
+      - data-pipeline
+    volumes:
+      - ./monitoring/prometheus/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ims-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - inventory-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   mongo_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   inventory-network:

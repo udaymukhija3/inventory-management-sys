@@ -1,8 +1,10 @@
 package com.inventory.event;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class InventoryEvent {
+    private String eventId;
     private String sku;
     private String warehouse;
     private Integer quantityChange;
@@ -11,18 +13,24 @@ public class InventoryEvent {
     private String referenceId;
     
     public InventoryEvent() {
+        this.eventId = UUID.randomUUID().toString();
         this.timestamp = LocalDateTime.now();
     }
     
     public InventoryEvent(String sku, String warehouse, Integer quantityChange, EventType eventType) {
+        this();
         this.sku = sku;
         this.warehouse = warehouse;
         this.quantityChange = quantityChange;
         this.eventType = eventType;
-        this.timestamp = LocalDateTime.now();
     }
     
     // Getters and Setters
+    public String getEventId() { return eventId; }
+    public void setEventId(String eventId) {
+        this.eventId = (eventId == null || eventId.isBlank()) ? UUID.randomUUID().toString() : eventId;
+    }
+    
     public String getSku() { return sku; }
     public void setSku(String sku) { this.sku = sku; }
     
@@ -41,4 +49,3 @@ public class InventoryEvent {
     public String getReferenceId() { return referenceId; }
     public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
 }
-
