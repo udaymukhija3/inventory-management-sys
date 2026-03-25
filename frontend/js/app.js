@@ -1,5 +1,20 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:9000/api/v1';
+const API_BASE_URL = '/api/v1';
+const DEMO_CREDENTIALS = 'demo_user:demo_pass';
+
+function buildAuthHeader(credentials) {
+    try {
+        return `Basic ${btoa(credentials)}`;
+    } catch (error) {
+        console.error('Failed to encode demo credentials:', error);
+        return '';
+    }
+}
+
+const DEFAULT_HEADERS = {
+    'Content-Type': 'application/json',
+    'Authorization': buildAuthHeader(DEMO_CREDENTIALS)
+};
 
 // API Client
 class APIClient {
@@ -11,7 +26,7 @@ class APIClient {
         const url = `${this.baseURL}${endpoint}`;
         const config = {
             headers: {
-                'Content-Type': 'application/json',
+                ...DEFAULT_HEADERS,
                 ...options.headers
             },
             ...options
