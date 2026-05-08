@@ -1,5 +1,4 @@
-// API Configuration
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = (window.__APP_CONFIG__ && window.__APP_CONFIG__.API_BASE_URL) || '/api/v1';
 const DEMO_CREDENTIALS = 'demo_user:demo_pass';
 
 function buildAuthHeader(credentials) {
@@ -16,7 +15,6 @@ const DEFAULT_HEADERS = {
     'Authorization': buildAuthHeader(DEMO_CREDENTIALS)
 };
 
-// API Client
 class APIClient {
     constructor(baseURL) {
         this.baseURL = baseURL;
@@ -52,111 +50,40 @@ class APIClient {
         }
     }
 
-    // Products
-    async getProducts(params = {}) {
-        const queryString = new URLSearchParams(params).toString();
-        return this.request(`/products${queryString ? '?' + queryString : ''}`);
-    }
-
-    async getProduct(id) {
-        return this.request(`/products/${id}`);
-    }
-
-    async getProductBySku(sku) {
-        return this.request(`/products/sku/${sku}`);
-    }
-
-    async createProduct(data) {
-        return this.request('/products', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    }
-
-    async updateProduct(id, data) {
-        return this.request(`/products/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        });
-    }
-
-    async deleteProduct(id) {
-        return this.request(`/products/${id}`, {
-            method: 'DELETE'
-        });
-    }
-
-    async searchProducts(searchTerm, params = {}) {
-        const queryString = new URLSearchParams({ searchTerm, ...params }).toString();
-        return this.request(`/products/search?${queryString}`);
-    }
-
-    // Inventory
-    async getInventory(sku, warehouseId) {
-        return this.request(`/inventory/${sku}/${warehouseId}`);
-    }
-
-    async adjustInventory(data) {
-        return this.request('/inventory/adjust', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    }
-
     async recordSale(sku, warehouseId, quantity) {
         return this.request(`/inventory/sale?sku=${sku}&warehouseId=${warehouseId}&quantity=${quantity}`, {
             method: 'POST'
         });
     }
-
-    async recordReceipt(sku, warehouseId, quantity) {
-        return this.request(`/inventory/receipt?sku=${sku}&warehouseId=${warehouseId}&quantity=${quantity}`, {
-            method: 'POST'
-        });
-    }
-
-    async getLowStockItems(threshold = 10) {
-        return this.request(`/inventory/low-stock?threshold=${threshold}`);
-    }
-
-    // Categories
-    async getCategories() {
-        return this.request('/categories');
-    }
-
-    async createCategory(data) {
-        return this.request('/categories', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    }
-
-    // Warehouses
-    async getWarehouses() {
-        return this.request('/warehouses');
-    }
-
-    async createWarehouse(data) {
-        return this.request('/warehouses', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    }
-
-    // Analytics
     async getInventoryVelocity(sku, warehouseId, periodDays = 30) {
         return this.request(`/analytics/velocity/${sku}/${warehouseId}?period_days=${periodDays}`);
     }
 
-    async getWarehouseSummary(warehouseId) {
-        return this.request(`/analytics/warehouse-summary/${warehouseId}`);
+    async getDemoOverview(sku = 'LAPTOP-001', warehouseId = 'WAREHOUSE-001', runsLimit = 5, metricsLimit = 8) {
+        const queryString = new URLSearchParams({
+            sku,
+            warehouse_id: warehouseId,
+            runs_limit: runsLimit,
+            metrics_limit: metricsLimit
+        }).toString();
+        return this.request(`/analytics/demo/overview?${queryString}`);
+    }
+
+    async getDemoRuns(limit = 10) {
+        return this.request(`/analytics/demo/runs?limit=${limit}`);
+    }
+
+    async getDemoCurrentMetrics(limit = 10) {
+        return this.request(`/analytics/demo/current-metrics?limit=${limit}`);
+    }
+
+    async getLatestBacktest() {
+        return this.request('/analytics/backtest/latest');
     }
 }
 
-// Initialize API client
 const api = new APIClient(API_BASE_URL);
 
-// Toast Notification
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -167,22 +94,11 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
-// Format Currency
-function formatCurrency(amount) {
-    if (amount === null || amount === undefined) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-    }).format(amount);
-}
-
-// Format Number
 function formatNumber(num) {
     if (num === null || num === undefined) return '0';
     return new Intl.NumberFormat('en-US').format(num);
 }
 
-// Format Date
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -195,27 +111,38 @@ function formatDate(dateString) {
     }).format(date);
 }
 
-// Error Handler
+function formatRelativeTime(dateString) {
+    if (!dateString) return 'N/A';
+
+    const date = new Date(dateString);
+    const seconds = Math.round((date.getTime() - Date.now()) / 1000);
+    const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    const ranges = [
+        { limit: 60, unit: 'second' },
+        { limit: 3600, unit: 'minute', divisor: 60 },
+        { limit: 86400, unit: 'hour', divisor: 3600 },
+        { limit: 604800, unit: 'day', divisor: 86400 }
+    ];
+
+    for (const range of ranges) {
+        if (Math.abs(seconds) < range.limit) {
+            const value = range.divisor ? Math.round(seconds / range.divisor) : seconds;
+            return formatter.format(value, range.unit);
+        }
+    }
+
+    return formatDate(dateString);
+}
+
 function handleError(error, context = '') {
     console.error(`Error in ${context}:`, error);
     showToast(error.message || 'An error occurred', 'error');
 }
 
-// Loading State
-function setLoading(elementId, isLoading) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    if (isLoading) {
-        element.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-    }
-}
-
-// Export for use in other scripts
 window.api = api;
 window.showToast = showToast;
-window.formatCurrency = formatCurrency;
 window.formatNumber = formatNumber;
 window.formatDate = formatDate;
+window.formatRelativeTime = formatRelativeTime;
 window.handleError = handleError;
 window.setLoading = setLoading;
