@@ -3,146 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Management System - Dashboard</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Inventory Data Engineering Demo</title>
+    <link rel="stylesheet" href="css/demo.css">
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <i class="fas fa-boxes"></i>
-                <span>Inventory<span class="brand-accent">Pro</span></span>
+<body class="demo-body">
+    <header class="hero">
+        <div class="shell hero-layout">
+            <div class="hero-copy">
+                <p class="eyebrow">Data Engineering Demo</p>
+                <h1>Inventory Event To Analytics Evidence</h1>
+                <p class="lede">
+                    This project records an inventory mutation, publishes a Kafka event, computes inventory analytics,
+                    stores the result in Postgres and Redis, writes Parquet artifacts, and serves the latest state
+                    through a small API. This page exists to prove that flow happened.
+                </p>
+                <div class="chip-row">
+                    <span class="chip">Source: operational inventory writes</span>
+                    <span class="chip">Pipeline: Kafka consumer + ETL</span>
+                    <span class="chip">Outputs: tables, Redis, Parquet, API</span>
+                </div>
+                <div class="action-row">
+                    <button id="triggerDemoSale" class="button button-primary" onclick="triggerDemoSale()">Trigger Live Sale</button>
+                    <button class="button button-secondary" onclick="refreshDemo()">Refresh</button>
+                </div>
             </div>
-            <ul class="nav-menu">
-                <li><a href="index.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
-                <li><a href="products.html"><i class="fas fa-box"></i> Products</a></li>
-            </ul>
+            <aside class="hero-card">
+                <h2>Two Minute Story</h2>
+                <ol class="story-list">
+                    <li>Record one inventory sale for the seeded focus SKU.</li>
+                    <li>Wait for the pipeline to consume and materialize the event.</li>
+                    <li>Inspect the latest run, DQ result, outputs, and preview rows.</li>
+                    <li>Use the links below for raw API, metrics, and monitoring proof.</li>
+                </ol>
+                <p class="focus-key">Tracked key: <code>LAPTOP-001 / WAREHOUSE-001</code></p>
+            </aside>
         </div>
-    </nav>
+    </header>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="container">
-            <!-- Header -->
-            <header class="page-header">
-                <div>
-                    <h1>Dashboard</h1>
-                    <p class="subtitle">Welcome back! Here's what's happening with your inventory today.</p>
-                    <p class="subtitle">Demo mode uses seeded local data and the built-in demo_user account.</p>
-                </div>
-                <button class="btn btn-primary" onclick="window.location.href='products.html'">
-                    <i class="fas fa-plus"></i> Add Product
-                </button>
-            </header>
+    <main class="shell main-layout">
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span class="summary-label">Pipeline</span>
+                <strong id="pipelineStatus">Loading...</strong>
+                <span id="pipelineStatusDetail" class="summary-detail">Checking analytics health</span>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Latest Run</span>
+                <strong id="latestRunStatus">Loading...</strong>
+                <span id="latestRunTime" class="summary-detail">Waiting for run metadata</span>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Data Freshness</span>
+                <strong id="freshnessStatus">Loading...</strong>
+                <span id="freshnessDetail" class="summary-detail">Waiting for latest success</span>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Quality</span>
+                <strong id="dqStatus">Loading...</strong>
+                <span id="dqDetail" class="summary-detail">Waiting for latest DQ report</span>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Current Metrics</span>
+                <strong id="currentMetricRows">Loading...</strong>
+                <span class="summary-detail">Rows in <code>analytics.current_metrics</code></span>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Invalid Events</span>
+                <strong id="invalidEvents">Loading...</strong>
+                <span class="summary-detail">Rows in <code>analytics.invalid_inventory_events</code></span>
+            </article>
+        </section>
 
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon blue">
-                        <i class="fas fa-box"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="totalProducts">Loading...</h3>
-                        <p>Total Products</p>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon green">
-                        <i class="fas fa-dollar-sign"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="totalValue">Loading...</h3>
-                        <p>Total Inventory Value</p>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon orange">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="lowStockItems">Loading...</h3>
-                        <p>Low Stock Alerts</p>
+        <section class="panel-grid">
+            <article class="panel panel-span-2">
+                <div class="panel-header">
+                    <div>
+                        <h2>System Flow</h2>
+                        <p>Lineage-lite from source write to inspectable outputs.</p>
                     </div>
                 </div>
+                <div id="flowPanel" class="flow-grid">
+                    <div class="loading-state">Loading system flow...</div>
+                </div>
+            </article>
 
-                <div class="stat-card">
-                    <div class="stat-icon purple">
-                        <i class="fas fa-warehouse"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="totalWarehouses">Loading...</h3>
-                        <p>Active Warehouses</p>
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Latest Outputs</h2>
+                        <p>Physical artifacts and serving surfaces.</p>
                     </div>
                 </div>
-            </div>
+                <div id="artifactsPanel">
+                    <div class="loading-state">Loading outputs...</div>
+                </div>
+            </article>
 
-            <!-- Content Grid -->
-            <div class="content-grid">
-                <!-- Recent Products -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-box"></i> Recent Products</h2>
-                        <a href="products.html" class="link">View All <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                    <div class="card-body">
-                        <div id="recentProducts" class="table-container">
-                            <div class="loading">
-                                <i class="fas fa-spinner fa-spin"></i> Loading products...
-                            </div>
-                        </div>
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Focus Inventory</h2>
+                        <p>Operational row for the seeded demo key.</p>
                     </div>
                 </div>
+                <div id="focusInventoryPanel">
+                    <div class="loading-state">Loading focus inventory...</div>
+                </div>
+            </article>
 
-                <!-- Low Stock Alerts -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-exclamation-circle"></i> Low Stock Alerts</h2>
-                        <a href="products.html" class="link">Open Products <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                    <div class="card-body">
-                        <div id="lowStockList" class="alert-list">
-                            <div class="loading">
-                                <i class="fas fa-spinner fa-spin"></i> Loading alerts...
-                            </div>
-                        </div>
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Focus Metric</h2>
+                        <p>Derived analytics row for the same key.</p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="quick-actions">
-                <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
-                <div class="action-grid">
-                    <button class="action-btn" onclick="window.location.href='products.html'">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>Add New Product</span>
-                    </button>
-                    <button class="action-btn" onclick="window.location.href='products.html'">
-                        <i class="fas fa-box-open"></i>
-                        <span>Browse Products</span>
-                    </button>
-                    <button class="action-btn" onclick="window.open('http://localhost:8080/swagger-ui/index.html', '_blank', 'noopener')">
-                        <i class="fas fa-book-open"></i>
-                        <span>Open API Docs</span>
-                    </button>
-                    <button class="action-btn" onclick="refreshDashboard()">
-                        <i class="fas fa-sync-alt"></i>
-                        <span>Refresh Data</span>
-                    </button>
+                <div id="focusMetricPanel">
+                    <div class="loading-state">Loading focus metric...</div>
                 </div>
-            </div>
-        </div>
+            </article>
+
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Quality Checks</h2>
+                        <p>Latest persisted DQ result.</p>
+                    </div>
+                </div>
+                <div id="qualityPanel">
+                    <div class="loading-state">Loading data quality...</div>
+                </div>
+            </article>
+
+            <article class="panel panel-span-2">
+                <div class="panel-header">
+                    <div>
+                        <h2>Current Metrics Preview</h2>
+                        <p>Fresh rows from <code>analytics.current_metrics</code>.</p>
+                    </div>
+                </div>
+                <div id="metricsTablePanel">
+                    <div class="loading-state">Loading metrics preview...</div>
+                </div>
+            </article>
+
+            <article class="panel panel-span-2">
+                <div class="panel-header">
+                    <div>
+                        <h2>Recent Pipeline Runs</h2>
+                        <p>Real execution evidence from <code>analytics.pipeline_runs</code>.</p>
+                    </div>
+                </div>
+                <div id="runsTablePanel">
+                    <div class="loading-state">Loading run history...</div>
+                </div>
+            </article>
+
+            <article class="panel panel-span-2">
+                <div class="panel-header">
+                    <div>
+                        <h2>Stockout-Prevention Backtest</h2>
+                        <p>Headline business metric from <code>analytics.backtest_runs</code>. Run <code>make backtest</code> to refresh.</p>
+                    </div>
+                </div>
+                <div id="backtestPanel">
+                    <div class="loading-state">Loading backtest...</div>
+                </div>
+            </article>
+        </section>
     </main>
 
-    <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
+    <script src="js/config.js"></script>
     <script src="js/app.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="js/demo.js"></script>
 </body>
 </html>
