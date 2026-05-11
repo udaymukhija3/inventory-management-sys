@@ -3,74 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Data Engineering Demo</title>
+    <meta name="description" content="Inventory Management System — operational service plus a streaming data pipeline. Live demo monitor.">
+    <title>Inventory Management System — Demo Monitor</title>
     <link rel="stylesheet" href="css/demo.css">
 </head>
 <body class="demo-body">
     <header class="hero">
         <div class="shell hero-layout">
             <div class="hero-copy">
-                <p class="eyebrow">Data Engineering Demo</p>
-                <h1>Inventory Event To Analytics Evidence</h1>
+                <p class="eyebrow">Inventory Management System</p>
+                <h1>Operational writes → Kafka → analytics, in one demo</h1>
                 <p class="lede">
-                    This project records an inventory mutation, publishes a Kafka event, computes inventory analytics,
-                    stores the result in Postgres and Redis, writes Parquet artifacts, and serves the latest state
-                    through a small API. This page exists to prove that flow happened.
+                    A Spring Boot inventory service records each stock movement and publishes an event.
+                    A Python ETL consumer reshapes those events into Postgres analytics, Redis cache,
+                    and Parquet files. This page proves the loop end-to-end.
                 </p>
                 <div class="chip-row">
-                    <span class="chip">Source: operational inventory writes</span>
-                    <span class="chip">Pipeline: Kafka consumer + ETL</span>
-                    <span class="chip">Outputs: tables, Redis, Parquet, API</span>
+                    <span class="chip">Inventory · Spring Boot</span>
+                    <span class="chip">Streaming · Kafka</span>
+                    <span class="chip">ETL · Python</span>
+                    <span class="chip">Analytics · FastAPI</span>
+                    <span class="chip">Cache · Redis</span>
                 </div>
                 <div class="action-row">
-                    <button id="triggerDemoSale" class="button button-primary" onclick="triggerDemoSale()">Trigger Live Sale</button>
-                    <button class="button button-secondary" onclick="refreshDemo()">Refresh</button>
+                    <button id="triggerDemoSale" class="button button-primary" type="button">Trigger Live Sale</button>
+                    <button id="refreshDemo" class="button button-secondary" type="button">Refresh</button>
+                </div>
+                <div id="modeBanner" class="banner banner-info" hidden>
+                    <span class="banner-title">Preview mode.</span>
+                    <span id="modeBannerText">Detecting backend…</span>
                 </div>
             </div>
             <aside class="hero-card">
-                <h2>Two Minute Story</h2>
+                <h2>Two-minute story</h2>
                 <ol class="story-list">
-                    <li>Record one inventory sale for the seeded focus SKU.</li>
-                    <li>Wait for the pipeline to consume and materialize the event.</li>
-                    <li>Inspect the latest run, DQ result, outputs, and preview rows.</li>
-                    <li>Use the links below for raw API, metrics, and monitoring proof.</li>
+                    <li>Click <strong>Trigger Live Sale</strong> to record a sale on the focus SKU.</li>
+                    <li>The Kafka consumer picks up the event and recomputes velocity.</li>
+                    <li>Analytics API returns the refreshed metrics; this page re-renders.</li>
+                    <li>Open the linked endpoints to inspect the raw payloads.</li>
                 </ol>
-                <p class="focus-key">Tracked key: <code>LAPTOP-001 / WAREHOUSE-001</code></p>
+                <p class="focus-key">Focus key: <code id="focusKey">LAPTOP-001 / WAREHOUSE-001</code></p>
             </aside>
         </div>
     </header>
 
     <main class="shell main-layout">
-        <section class="summary-grid">
+        <section class="summary-grid" aria-label="Pipeline summary">
             <article class="summary-card">
-                <span class="summary-label">Pipeline</span>
-                <strong id="pipelineStatus">Loading...</strong>
-                <span id="pipelineStatusDetail" class="summary-detail">Checking analytics health</span>
+                <span class="summary-label">Inventory API</span>
+                <strong id="invStatus">…</strong>
+                <span id="invStatusDetail" class="summary-detail">Checking inventory service</span>
             </article>
             <article class="summary-card">
-                <span class="summary-label">Latest Run</span>
-                <strong id="latestRunStatus">Loading...</strong>
-                <span id="latestRunTime" class="summary-detail">Waiting for run metadata</span>
+                <span class="summary-label">Analytics API</span>
+                <strong id="anaStatus">…</strong>
+                <span id="anaStatusDetail" class="summary-detail">Checking analytics service</span>
             </article>
             <article class="summary-card">
-                <span class="summary-label">Data Freshness</span>
-                <strong id="freshnessStatus">Loading...</strong>
-                <span id="freshnessDetail" class="summary-detail">Waiting for latest success</span>
+                <span class="summary-label">Available Stock</span>
+                <strong id="invQty">—</strong>
+                <span class="summary-detail">Units of <code id="focusSkuLabel">LAPTOP-001</code></span>
             </article>
             <article class="summary-card">
-                <span class="summary-label">Quality</span>
-                <strong id="dqStatus">Loading...</strong>
-                <span id="dqDetail" class="summary-detail">Waiting for latest DQ report</span>
+                <span class="summary-label">Velocity 7d</span>
+                <strong id="velocity7d">—</strong>
+                <span class="summary-detail">Daily-equivalent sales last 7d</span>
             </article>
             <article class="summary-card">
-                <span class="summary-label">Current Metrics</span>
-                <strong id="currentMetricRows">Loading...</strong>
-                <span class="summary-detail">Rows in <code>analytics.current_metrics</code></span>
+                <span class="summary-label">Velocity 30d</span>
+                <strong id="velocity30d">—</strong>
+                <span class="summary-detail">Daily-equivalent sales last 30d</span>
             </article>
             <article class="summary-card">
-                <span class="summary-label">Invalid Events</span>
-                <strong id="invalidEvents">Loading...</strong>
-                <span class="summary-detail">Rows in <code>analytics.invalid_inventory_events</code></span>
+                <span class="summary-label">Last Refresh</span>
+                <strong id="lastRefresh">—</strong>
+                <span id="lastRefreshDetail" class="summary-detail">Click Refresh to recheck</span>
             </article>
         </section>
 
@@ -78,99 +85,62 @@
             <article class="panel panel-span-2">
                 <div class="panel-header">
                     <div>
-                        <h2>System Flow</h2>
-                        <p>Lineage-lite from source write to inspectable outputs.</p>
+                        <h2>System flow</h2>
+                        <p>From operational write to inspectable analytics output.</p>
                     </div>
                 </div>
-                <div id="flowPanel" class="flow-grid">
-                    <div class="loading-state">Loading system flow...</div>
-                </div>
+                <div id="flowPanel" class="flow-grid"></div>
             </article>
 
             <article class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>Latest Outputs</h2>
-                        <p>Physical artifacts and serving surfaces.</p>
-                    </div>
-                </div>
-                <div id="artifactsPanel">
-                    <div class="loading-state">Loading outputs...</div>
-                </div>
-            </article>
-
-            <article class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>Focus Inventory</h2>
-                        <p>Operational row for the seeded demo key.</p>
+                        <h2>Focus inventory</h2>
+                        <p>Live row from <code>/api/v1/inventory/{sku}/{warehouseId}</code>.</p>
                     </div>
                 </div>
                 <div id="focusInventoryPanel">
-                    <div class="loading-state">Loading focus inventory...</div>
+                    <div class="loading-state">Loading focus inventory…</div>
                 </div>
             </article>
 
             <article class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>Focus Metric</h2>
-                        <p>Derived analytics row for the same key.</p>
+                        <h2>Focus velocity</h2>
+                        <p>Derived from <code>/api/v1/analytics/velocity/{sku}/{warehouseId}</code>.</p>
                     </div>
                 </div>
-                <div id="focusMetricPanel">
-                    <div class="loading-state">Loading focus metric...</div>
-                </div>
-            </article>
-
-            <article class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2>Quality Checks</h2>
-                        <p>Latest persisted DQ result.</p>
-                    </div>
-                </div>
-                <div id="qualityPanel">
-                    <div class="loading-state">Loading data quality...</div>
+                <div id="focusVelocityPanel">
+                    <div class="loading-state">Loading velocity…</div>
                 </div>
             </article>
 
             <article class="panel panel-span-2">
                 <div class="panel-header">
                     <div>
-                        <h2>Current Metrics Preview</h2>
-                        <p>Fresh rows from <code>analytics.current_metrics</code>.</p>
+                        <h2>Endpoints to inspect</h2>
+                        <p>Open these directly to verify the backend is real.</p>
                     </div>
                 </div>
-                <div id="metricsTablePanel">
-                    <div class="loading-state">Loading metrics preview...</div>
-                </div>
+                <div id="endpointsPanel" class="table-wrap"></div>
             </article>
 
             <article class="panel panel-span-2">
                 <div class="panel-header">
                     <div>
-                        <h2>Recent Pipeline Runs</h2>
-                        <p>Real execution evidence from <code>analytics.pipeline_runs</code>.</p>
+                        <h2>Tech stack</h2>
+                        <p>What runs the supported demo.</p>
                     </div>
                 </div>
-                <div id="runsTablePanel">
-                    <div class="loading-state">Loading run history...</div>
-                </div>
-            </article>
-
-            <article class="panel panel-span-2">
-                <div class="panel-header">
-                    <div>
-                        <h2>Stockout-Prevention Backtest</h2>
-                        <p>Headline business metric from <code>analytics.backtest_runs</code>. Run <code>make backtest</code> to refresh.</p>
-                    </div>
-                </div>
-                <div id="backtestPanel">
-                    <div class="loading-state">Loading backtest...</div>
-                </div>
+                <div id="stackPanel" class="table-wrap"></div>
             </article>
         </section>
+
+        <p class="foot">
+            Run <code>make demo</code> locally for the full end-to-end stack ·
+            <a href="https://github.com/udaymukhija3/inventory-management-sys" rel="noopener noreferrer" target="_blank">View source on GitHub</a>
+        </p>
     </main>
 
     <div id="toast" class="toast"></div>
