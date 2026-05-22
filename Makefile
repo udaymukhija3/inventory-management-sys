@@ -11,7 +11,7 @@ help:
 	@echo "  make clean    - Stop containers and clean build artifacts"
 
 up:
-	docker compose -f docker-compose.dev.yml up --build -d postgres redis zookeeper kafka inventory-service analytics-service data-pipeline prometheus grafana
+	docker compose -f docker-compose.dev.yml up --build -d postgres redis zookeeper kafka inventory-service analytics-service data-pipeline frontend prometheus grafana
 
 build:
 	docker compose -f docker-compose.dev.yml build inventory-service analytics-service data-pipeline

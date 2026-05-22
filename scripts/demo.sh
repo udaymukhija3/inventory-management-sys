@@ -38,11 +38,12 @@ rm -f "$DATA_DIR"/*.parquet "$DATA_DIR"/*.json 2>/dev/null || true
 rm -f "$ARTIFACT_DIR"/*.txt "$ARTIFACT_DIR"/*.json "$ARTIFACT_DIR"/*.md 2>/dev/null || true
 
 echo "Starting supported demo stack..."
-"${COMPOSE[@]}" -f "$REPO_ROOT/docker-compose.dev.yml" up --build -d postgres redis zookeeper kafka inventory-service analytics-service data-pipeline prometheus grafana
+"${COMPOSE[@]}" -f "$REPO_ROOT/docker-compose.dev.yml" up --build -d postgres redis zookeeper kafka inventory-service analytics-service data-pipeline frontend prometheus grafana
 
 echo "Waiting for services to become healthy..."
 until curl -s -f "$INVENTORY_SERVICE/actuator/health" >/dev/null; do sleep 2; done
 until curl -s -f "$ANALYTICS_SERVICE/health/" >/dev/null; do sleep 2; done
+until curl -s -f "http://localhost:3000" >/dev/null; do sleep 2; done
 until curl -s -f "http://localhost:9090/-/ready" >/dev/null; do sleep 2; done
 until curl -s -f "http://localhost:3001/api/health" >/dev/null; do sleep 2; done
 

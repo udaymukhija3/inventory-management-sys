@@ -9,7 +9,9 @@ the whole loop together.
 
 ## Live Demo
 
-- **Static frontend (preview mode):** deploy with the button below — without
+- **Public frontend preview:** <https://udaymukhija3.github.io/inventory-management-sys/>
+  is published by the GitHub Pages workflow on every `main` push.
+- **Static frontend (preview mode):** deploy with the Vercel button below — without
   a reachable backend the dashboard renders in *preview mode* with
   illustrative data and a clear banner telling the viewer to run the stack
   locally for live numbers.
@@ -18,6 +20,7 @@ the whole loop together.
 ## Deploy The Frontend To Vercel
 
 The `frontend/` directory is a static HTML/JS dashboard. It deploys to
+GitHub Pages automatically via `.github/workflows/pages.yml`, or to
 Vercel with no build step.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/udaymukhija3/inventory-management-sys&root-directory=frontend&project-name=inventory-management-sys-frontend)
